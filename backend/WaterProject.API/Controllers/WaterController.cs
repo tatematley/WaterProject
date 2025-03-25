@@ -14,17 +14,56 @@ namespace WaterProject.API.Controllers
         public WaterController(WaterDbContext temp) => _waterContext = temp;
 
         [HttpGet("AllProjects")]
-        public IEnumerable<Project> GetProjects()
+        public IActionResult GetProjects(int pageSize = 10, int pageNum = 1, [FromQuery] List<string>? projectTypes = null)
         {
-            var something = _waterContext.Projects.ToList();
-            return something;
+            IQueryable query = _waterContext.Projects.AsQueryable();
+
+            if (projectTypes != null && projectTypes.Any())
+            {
+                query = query.Where(p => projectTypes.Contains(p.ProjectType));
+            }
+            
+            // GET the cookie to the console (can see in rider terminal)  
+            string? favProjType = Request.Cookies["FavoriteProjectType"];
+            Console.WriteLine("--------COOKIE-------\n" + favProjType);
+            
+            
+            // Create a COOKIE 
+            HttpContext.Response.Cookies.Append("FavoriteProjectType", "Borehole Well adn Hand Pump", new CookieOptions
+            {
+                HttpOnly = true, // cookie is only seen by the server
+                Secure = true, // cookie only transmitted over https 
+                SameSite = SameSiteMode.Strict, // limits cookies from other sites (strict if we want it to be secure) 
+                Expires = DateTime.Now.AddMinutes(1) // when we want the session cookie to expire 
+            });
+            
+            // num of projects
+            var totalNumProjects = query.Count();
+            
+            // projects 
+            var something = query
+                .Skip((pageNum-1) * pageSize)
+                .Take(pageSize)
+                .ToList();
+
+            // makes it so you can return both the num of projects and the Projects 
+            var someObject = new
+            {
+                Projects = something,
+                TotalNumProjects = totalNumProjects
+            };
+            return Ok(someObject); // this OK makes it so it gets a 200 and passes through
         }
 
-        [HttpGet("FunctionalProjects")]
-        public IEnumerable<Project> GetFunctionalProjects()
+        [HttpGet("GetProjectTypes")]
+        public IActionResult GetProjectTypes()
         {
-            var something = _waterContext.Projects.Where(p => p.ProjectFunctionalityStatus == "Functional").ToList();
-            return something;
+            var projectTypes = _waterContext.Projects
+                .Select(p => p.ProjectType )
+                .Distinct()
+                .ToList();
+            
+            return Ok(projectTypes);
         }
     }
 }
