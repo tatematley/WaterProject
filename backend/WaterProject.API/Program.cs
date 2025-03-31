@@ -10,6 +10,16 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
+
+builder.Services.AddCors(options =>
+    options.AddPolicy("AllowReactAppBlah", 
+    policy => {
+        policy.WithOrigins("http://localhost:3000")
+            .AllowAnyHeader()
+            .AllowAnyMethod();
+    }));
+
+
 // Enable Cookies 
 builder.Services.AddCors(options =>
 {
@@ -36,7 +46,7 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
-app.UseCors("AllowFrontend");
+app.UseCors("AllowFrontend", "AllowReactAppBlah");
 
 app.UseHttpsRedirection(); // comment this out to use http and not https
 
